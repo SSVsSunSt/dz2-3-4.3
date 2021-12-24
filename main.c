@@ -1,33 +1,31 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <math.h>
+#include <limits.h>
 
 int check(int,int**);
-int weight(int,int,int**);
-void add(int,int,int,int**);
-void graph(int,int,int**);
+int weight(int,int**);
+void graph(int,int**);
 int main(void){
     char* path=(char*)malloc(255*sizeof(char));
     printf("enter filepath:\n");
     scanf("%s",path);
     FILE* t1=fopen(path,"r");
-    int c1=0;
+    int sd=0;
     do{
         if(fgetc(t1)=='\n'){
-            c1++;
+            sd++;
         }
     }while(!feof(t1));
     fclose(t1);
-    int** mtx=(int**)malloc(c1*sizeof(int*));
-    for(int c2=0;c2<c1;c2++){
-        mtx[c2]=(int*)malloc(c1*sizeof(int));
+    int** mtx=(int**)malloc(sd*sizeof(int*));
+    for(int c2=0;c2<sd;c2++){
+        mtx[c2]=(int*)malloc(sd*sizeof(int));
     }
     FILE* rd=fopen(path,"r");
     char cc;
     int col=0,row=0,c3=1;
-    while(c3<c1){
+    while(c3<sd){
         cc=fgetc(rd);
         if(cc=='\n'){
             c3++;
@@ -39,13 +37,14 @@ int main(void){
         }
     }
     fclose(rd);
-    graph(c1,c1,mtx);
-    if(check(c1,mtx)){
+    free(path);
+    graph(sd,mtx);
+    if(check(sd,mtx)){
         printf("is a simple cycle\n");
     }else{
         printf("not a simple cycle\n");
     }
-    printf("one of the vertexes that have the least edges: %d\n",weight(c1,c1,mtx));
+    printf("one of the vertices that have the least edges: %d\n",weight(sd,mtx));
     printf("add an edge? y/n\n");
     char tc;
     scanf(" %c",&tc);
@@ -53,12 +52,12 @@ int main(void){
         int v1,v2;
         printf("vertex 1 2\n");
         scanf("%d %d",&v1,&v2);
-        add(v1,v2,c1,mtx);
-        graph(c1,c1+1,mtx);
-        printf("one of the vertexes that have the least edges: %d\n",weight(c1,c1+1,mtx));
+        mtx[v1-1][v2-1]=1;
+        mtx[v2-1][v1-1]=1;
+        graph(sd,mtx);
+        printf("one of the vertices that have the least edges: %d\n",weight(sd,mtx));
     }
-    free(path);
-    for(int c7=0;c7<c1;c7++){
+    for(int c7=0;c7<sd;c7++){
         free(mtx[c7]);
     }
     free(mtx);
@@ -77,18 +76,20 @@ int check(int ce,int** mtx){
     }
     return(1);
 }
-int weight(int ce,int cel,int** mtx){
-    int* svd=(int*)malloc(ce*sizeof(int));
+int weight(int sd,int** mtx){
+    int* svd=(int*)malloc(sd*sizeof(int));
     int sum;
-    for(int c1=0;c1<ce;c1++){
+    for(int c1=0;c1<sd;c1++){
         sum=0;
-        for(int c2=0;c2<cel;c2++){
-            sum+=abs(mtx[c1][c2]);
+        for(int c2=c1;c2<sd;c2++){
+            if(mtx[c1][c2]){
+                sum++;
+            }
         }
         svd[c1]=sum;
     }
-    int smol=2147483647,num;
-    for(int c3=0;c3<ce;c3++){
+    int smol=INT_MAX,num;
+    for(int c3=0;c3<sd;c3++){
         if(svd[c3]<smol){
             num=c3;
         }
@@ -96,44 +97,17 @@ int weight(int ce,int cel,int** mtx){
     free(svd);
     return(num);
 }
-void add(int a1,int a2,int ce,int** mtx){
-    for(int c1=0;c1<ce;c1++){
-        mtx[c1]=(int*)realloc(mtx[c1],(ce+1)*sizeof(int));
-    }
-    for(int c2=0;c2<ce;c2++){
-        mtx[c2][ce]=0;
-    }
-    mtx[a1-1][ce]=1;
-    mtx[a2-1][ce]=1;
-}
-void graph(int ce,int cel,int** mtx){
-    FILE* vizalt=fopen("graph.dot","w");
-    fprintf(vizalt,"graph B{\n");
-    int* svdg=(int*)malloc(cel*sizeof(int));
-    int v1,v2;
-    for(int c7=0;c7<cel;c7++){
-        svdg[c7]=0;
-        v1=0;
-        v2=0;
-        for(int c8=0;c8<ce;c8++){
-            svdg[c7]+=abs(mtx[c8][c7]);
-            if(abs(mtx[c8][c7])){
-                if(svdg[c7]==1) {
-                    v1=c8+1;
-                }else{
-                    v2=c8+1;
-                }
+void graph(int sd, int** mtx){
+    FILE* viz=fopen("graph.dot","w");
+    fprintf(viz,"graph B{\n");
+    for(int c1=0;c1<sd;c1++){
+        for(int c2=c1;c2<sd;c2++){
+            if(mtx[c1][c2]){
+                fprintf(viz,"\t%d -- %d\n",(c1+1),(c2+1));
             }
         }
-        if(svdg[c7]==1){
-            fprintf(vizalt,"\t%d -- %d\n",v1,v1);
-        }
-        if(svdg[c7]==2){
-            fprintf(vizalt,"\t%d -- %d\n",v1,v2);
-        }
     }
-    fprintf(vizalt,"}");
-    fclose(vizalt);
-    free(svdg);
+    fprintf(viz,"}");
+    fclose(viz);
     printf("graph.dot done\n");
 }
